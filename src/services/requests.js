@@ -3,36 +3,38 @@ const baseUrl = "/api/blogs";
 // const baseUrl = "http://localhost:3003/api/blogs";
 let token = null;
 
-const setToken = (newToken) => {
+export const requestToken = (newToken) => {
   if (newToken) {
     token = `Bearer ${newToken}`;
   } else {
     console.error("Token is missing. Please provide a valid token.");
   }
 };
-
-const getAll = async () => {
+export const getBlogs = async () => {
   if (!token) {
     console.error(
       "Token is missing. Please set the token before making the request."
     );
-    return [];
+    return []; // Return empty array to avoid potential errors downstream
   }
+
   try {
     const config = {
       headers: {
         Authorization: token,
       },
     };
+
     const response = await axios.get(baseUrl, config);
+    console.log("Response**********", response);
     return response.data.map((blog) => ({ ...blog, user: blog.user }));
   } catch (error) {
     console.error("Error fetching blogs:", error);
-    throw error;
+    throw error; // Re-throw the error for proper handling
   }
 };
 
-const create = async (newObject) => {
+export const createBlog = async (newObject) => {
   const config = {
     headers: { Authorization: token },
   };
@@ -40,7 +42,7 @@ const create = async (newObject) => {
   return response.data;
 };
 
-const updateLikes = async (blogId) => {
+export const updateBlogLikes = async (blogId) => {
   try {
     const config = {
       headers: { Authorization: token },
@@ -53,7 +55,7 @@ const updateLikes = async (blogId) => {
   }
 };
 
-const deleteBlog = async (blogId) => {
+export const deleteBlogQuery = async (blogId) => {
   try {
     const config = {
       headers: { Authorization: token },
@@ -65,5 +67,3 @@ const deleteBlog = async (blogId) => {
     throw error;
   }
 };
-
-export default { getAll, create, setToken, updateLikes, deleteBlog };

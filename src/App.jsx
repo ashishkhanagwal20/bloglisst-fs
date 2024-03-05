@@ -1,73 +1,110 @@
 import { useState, useEffect, useRef } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
+
 import loginService from "./services/login";
 import Blog from "./components/Blog";
 import blogService from "./services/blogs";
-import BlogForm from "./components/BlogForm";
+import {
+  requestToken,
+  getBlogs,
+  createBlog,
+  updateBlogLikes,
+  deleteBlogQuery,
+} from "./services/requests";
+
+import Users from "./components/Users";
 import Togglable from "./components/Toggleable";
 import BlogForm2 from "./components/BlogForm2";
-const App = () => {
-  const [blogs, setBlogs] = useState([]);
-  const [errorMessage, setErrorMessage] = useState(null);
-  // const [newAuthor, setNewAuthor] = useState("");
-  // const [newTitle, setNewTitle] = useState("");
-  // const [newUrl, setnewUrl] = useState("");
-  const [showAll, setShowAll] = useState(true);
-  const [blogFormVisible, setBlogFormVisible] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [user, setUser] = useState(null);
-  const blogFormRef = useRef();
-  // console.log(errorMessage);
-  // useEffect(() => {
-  //   blogService.getAll().then((blogs) => setBlogs(blogs));
-  // }, []);
+import LoginForm from "./components/LoginForm";
+import LogoutButton from "./components/LogoutButton";
 
-  // useEffect(() => {
-  //   const loggedUserJSON = window.localStorage.getItem("loggedNoteappUser");
-  //   if (loggedUserJSON) {
-  //     const user = JSON.parse(loggedUserJSON);
-  //     setUser(user);
-  //     blogService.setToken(user.token);
-  //   }
-  // }, []);
+import Signup from "./components/Signup";
+
+import Button from "react-bootstrap/Button";
+import Container from "react-bootstrap/Container";
+import axios from "axios";
+import bcrypt from "bcryptjs";
+const App = () => {
+  const navigate = useNavigate();
+  const [showSignup, setShowSignup] = useState(false);
+  const padding = {
+    padding: 5,
+  };
+  const queryClient = useQueryClient();
+  const newBlogMutation = useMutation({
+    mutationFn: createBlog,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blogs"] });
+    },
+  });
+  const updateLikeBlogMutation = useMutation({
+    mutationFn: updateBlogLikes,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blogs"] });
+    },
+  });
+
+  const deleteBlogMutation = useMutation({
+    mutationFn: deleteBlogQuery,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blogs"] });
+    },
+  });
+  const [blogs, setBlogs] = useState([]);
+  const [user, setUser] = useState(null);
+  const [showAll, setShowAll] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const blogFormRef = useRef();
+
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem("loggedBlogAppUser");
     if (loggedUserJSON) {
       const user = JSON.parse(loggedUserJSON);
-      console.log("Logged-in user:", user);
 
       setUser(user);
       blogService.setToken(user.token);
-
-      // Fetch blogs for the logged-in user
-      blogService.getAll().then((allBlogs) => {
-        console.log("All blogs:", allBlogs);
-        console.log(user);
-
-        const userBlogs = allBlogs.filter(
-          (blog) => blog.user.username === user.username
-        );
-        console.log("User blogs:", userBlogs);
-
-        setBlogs(userBlogs);
-      });
+      requestToken(user.token);
     }
   }, []);
 
-  const handleLogin = async (event) => {
-    event.preventDefault();
+  const result = useQuery({
+    queryKey: ["blogs"],
+    queryFn: () => getBlogs(),
+    cacheTime: 0,
+    refetchOnWindowFocus: false,
+  });
+
+  if (result.isLoading) {
+    return <div>loading data...</div>;
+  }
+
+  if (result.isError) {
+    return <pre>{JSON.stringify(result.error)}</pre>;
+  }
+
+  console.log("Result", JSON.parse(JSON.stringify(result)));
+
+  const handleLogin = async ({ username, password }) => {
     try {
       const user = await loginService.login({ username, password });
       window.localStorage.setItem("loggedBlogAppUser", JSON.stringify(user));
+      requestToken(user.token);
       blogService.setToken(user.token);
       setUser(user);
-      setUsername("");
-      setPassword("");
-      const allBlogs = await blogService.getAll();
-      const userBlogs = allBlogs.filter(
-        (blog) => blog.user.username === user.username
-      );
-      setBlogs(userBlogs);
     } catch (exception) {
       setErrorMessage("Wrong credentials");
       setTimeout(() => {
@@ -75,126 +112,193 @@ const App = () => {
       }, 5000);
     }
   };
-  const logoutButton = () => (
-    <button
-      type="button"
-      onClick={() => {
-        localStorage.removeItem("loggedBlogAppUser");
-        setUser(null);
-        setBlogs([]);
-      }}
-    >
-      Logout
-    </button>
-  );
 
-  const loginForm = () => (
-    <form onSubmit={handleLogin}>
-      <div>
-        username
-        <input
-          type="text"
-          value={username}
-          name="Username"
-          onChange={({ target }) => setUsername(target.value)}
-        />
-      </div>
-      <div>
-        password
-        <input
-          type="password"
-          value={password}
-          name="Password"
-          onChange={({ target }) => setPassword(target.value)}
-        />
-      </div>
-      <button type="submit">login</button>
-    </form>
-  );
+  const blogsQuery = result.data;
+
+  const handleLogout = () => {
+    localStorage.removeItem("loggedBlogAppUser");
+    if (!user) {
+      navigate("/login");
+    }
+    setUser(null);
+    setBlogs([]);
+  };
 
   const addBlog = (blogObject) => {
-    // event.preventDefault();
-    // const blogObject = {
-    //   title: newTitle,
-    //   author: newAuthor,
-    //   url: newUrl,
-    // };
     blogFormRef.current.toggleVisibility();
-    blogService.create(blogObject).then((returnedBlog) => {
-      setBlogs(blogs.concat(returnedBlog));
-      // setNewAuthor("");
-      // setNewTitle("");
-      // setnewUrl("");
-    });
+    newBlogMutation.mutate(blogObject);
   };
-  const blogsToShow = showAll ? blogs : blogs.filter((blog) => blog.title);
 
-  // const blogForm = () => {
-  //   const hideWhenVisible = { display: blogFormVisible ? "none" : "" };
-  //   const showWhenVisible = { display: blogFormVisible ? "" : "none" };
-
-  //   return (
-  //     <div>
-  //       <div style={hideWhenVisible}>
-  //         <button onClick={() => setBlogFormVisible(true)}>Add Blog</button>
-  //       </div>
-  //       <div style={showWhenVisible}>
-  //         <BlogForm
-  //           addBlog={addBlog}
-  //           newTitle={newTitle}
-  //           handleTitleChange={handleTitleChange}
-  //           newAuthor={newAuthor}
-  //           handleAuthorCHange={handleAuthorCHange}
-  //           newUrl={newUrl}
-  //           handleUrlChange={handleUrlChange}
-  //         />
-  //         <button onClick={() => setBlogFormVisible(false)}>cancel</button>
-  //       </div>
-  //     </div>
-  //   );
-  // };
+  const blogsToShow = showAll
+    ? blogsQuery
+    : blogsQuery.filter((blog) => blog.title);
 
   const blogForm = () => (
     <Togglable buttonLabel="new blog" ref={blogFormRef}>
-      <BlogForm2 createBlog={addBlog} />
+      <BlogForm2 createBlog1={addBlog} />
     </Togglable>
   );
 
   const handleLikeClick = async (blogId) => {
     try {
-      const updatedBlog = await blogService.updateLikes(blogId, user.token);
-      console.log("Blog likes updated:", updatedBlog);
-      setBlogs((prevBlogs) =>
-        prevBlogs.map((blog) =>
-          blog.id === updatedBlog.id ? updatedBlog : blog
-        )
-      );
+      updateLikeBlogMutation.mutate(blogId);
     } catch (error) {
       console.error("Error updating likes:", error);
     }
   };
 
-  return (
-    <div>
-      <h1>blogs</h1>
+  const handleDeleteClick = async (blogId) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this blog?"
+    );
+    if (confirmDelete) {
+      try {
+        deleteBlogMutation.mutate(blogId);
+      } catch (error) {
+        console.error("Error handling delete click", error);
+      }
+    }
+  };
 
-      {/* {user === null && loginForm()}
-      {user !== null && blogForm()} */}
-      {!user && loginForm()}
-      {user && (
+  return (
+    // <QueryClientProvider client={queryClient}>
+    //   <div className="container">
+    //     <h1>blogs</h1>
+    //     <div>
+    //       <Link style={padding} to="/blogs">
+    //         Blogs
+    //       </Link>
+    //       <Link
+    //         style={padding}
+    //         to="/addblog"
+    //         element={user ? <div>{blogForm()}</div> : null}
+    //       >
+    //         Create (requires login)
+    //       </Link>
+    //       <Link style={padding} to="/users">
+    //         Users
+    //       </Link>
+    //       {user ? (
+    //         <em>
+    //           {user.name} logged in <LogoutButton handleLogout={handleLogout} />
+    //         </em>
+    //       ) : (
+    //         <Link style={padding} to="/login">
+    //           Login
+    //         </Link>
+    //       )}
+    //     </div>
+
+    //     <Routes>
+    //       <Route path="/addblog" element={user && <div>{blogForm()}</div>} />
+    // <Route
+    //   path="/blogs"
+    //   element={
+    //     user &&
+    //     blogsToShow
+    //       .sort((a, b) => b.likes - a.likes)
+    //       .map((blog) => (
+    //         <Blog
+    //           key={blog.id}
+    //           blog={blog}
+    //           updateLikes={handleLikeClick}
+    //           deleteBlog={handleDeleteClick}
+    //         />
+    //       ))
+    //   }
+    // />
+
+    //       <Route
+    //         path="/users"
+    //         element={user ? <Users /> : <Navigate to="/login" replace />}
+    //       />
+
+    //       <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
+    //       <Route path="/signup" element={<Signup />} />
+    //       <Route
+    //         path="*"
+    //         element={!user && <LoginForm onLogin={handleLogin} />}
+    //       />
+    //     </Routes>
+
+    //     {/* {!user && <LoginForm onLogin={handleLogin} />} */}
+    //   </div>
+    // </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <Container>
+        <h1>blogs</h1>
         <div>
-          <p>
-            {user.name} logged in{logoutButton()}
-          </p>
-          {blogForm()}
+          {user && (
+            <>
+              <Link style={padding} to="/blogs">
+                Blogs
+              </Link>
+              <Link style={padding} to="/addblog">
+                Create (requires login)
+              </Link>
+              <Link style={padding} to="/users">
+                Users
+              </Link>
+              <em>
+                {user.name} logged in{" "}
+                <LogoutButton handleLogout={handleLogout} />
+              </em>
+            </>
+          )}
+          {!user && (
+            <>
+              <Link style={padding} to="/login">
+                Login
+              </Link>
+              <Link style={padding} to="/signup">
+                Signup
+              </Link>
+            </>
+          )}
         </div>
-      )}
-      <ul>
-        {blogsToShow.map((blog) => (
-          <Blog key={blog.id} blog={blog} updateLikes={handleLikeClick} />
-        ))}
-      </ul>
-    </div>
+
+        <Routes>
+          <Route
+            path="/blogs"
+            element={
+              user &&
+              blogsToShow
+                .sort((a, b) => b.likes - a.likes)
+                .map((blog) => (
+                  <Blog
+                    key={blog.id}
+                    blog={blog}
+                    updateLikes={handleLikeClick}
+                    deleteBlog={handleDeleteClick}
+                  />
+                ))
+            }
+          />
+          <Route
+            path="/addblog"
+            element={
+              user ? <div>{blogForm()}</div> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/users"
+            element={user ? <Users /> : <Navigate to="/login" replace />}
+          />
+          <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="*"
+            element={
+              !user ? (
+                <LoginForm onLogin={handleLogin} />
+              ) : (
+                <Navigate to="/blogs" />
+              )
+            }
+          />
+        </Routes>
+      </Container>
+    </QueryClientProvider>
   );
 };
 

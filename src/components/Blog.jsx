@@ -1,5 +1,5 @@
 import { useState } from "react";
-const Blog = ({ blog, updateLikes }) => {
+const Blog = ({ blog, updateLikes, deleteBlog }) => {
   const blogStyle = {
     paddingTop: 10,
     paddingLeft: 2,
@@ -16,6 +16,10 @@ const Blog = ({ blog, updateLikes }) => {
     // Call the updateLikes function with the blog's id
     updateLikes(blog.id);
   };
+  const handleDeleteBlog = () => {
+    // Call the updateLikes function with the blog's id
+    deleteBlog(blog.id);
+  };
   return (
     <div style={blogStyle}>
       <div>
@@ -29,6 +33,7 @@ const Blog = ({ blog, updateLikes }) => {
           <p>URL: {blog.url}</p>
           <p>Likes: {blog.likes}</p>
           <button onClick={handleLikeClick}>Like</button>
+          <button onClick={handleDeleteBlog}>Delete</button>
         </div>
       )}
     </div>

@@ -1,10 +1,10 @@
-import React from "react";
 import { useState } from "react";
 
-const BlogForm2 = ({ createBlog }) => {
+const BlogForm2 = ({ createBlog1 }) => {
   const [newAuthor, setNewAuthor] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setnewUrl] = useState("");
+  const [newContent, setNewContent] = useState("");
   const handleTitleChange = (event) => {
     setNewTitle(event.target.value);
   };
@@ -14,16 +14,21 @@ const BlogForm2 = ({ createBlog }) => {
   const handleUrlChange = (event) => {
     setnewUrl(event.target.value);
   };
+  const handleContentChange = (event) => {
+    setNewContent(event.target.value);
+  };
   const addBlog = (event) => {
     event.preventDefault();
-    createBlog({
+    createBlog1({
       title: newTitle,
       author: newAuthor,
+      content: newContent,
       url: newUrl,
     });
     setNewAuthor("");
     setNewTitle("");
     setnewUrl("");
+    setNewContent("");
   };
   return (
     <form onSubmit={addBlog}>
@@ -31,6 +36,14 @@ const BlogForm2 = ({ createBlog }) => {
         value={newTitle}
         onChange={handleTitleChange}
         placeholder="Title"
+      />
+      <input
+        value={newContent}
+        onChange={handleContentChange}
+        placeholder="Content"
+        type="textarea"
+        rows={Number(4)}
+        cols={Number(50)}
       />
       <input
         value={newAuthor}
