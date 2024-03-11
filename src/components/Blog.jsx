@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 const Blog = ({ blog, updateLikes, deleteBlog }) => {
   const blogStyle = {
     paddingTop: 10,
@@ -13,17 +14,22 @@ const Blog = ({ blog, updateLikes, deleteBlog }) => {
     setShowDetails(!showDetails);
   };
   const handleLikeClick = () => {
-    // Call the updateLikes function with the blog's id
     updateLikes(blog.id);
   };
   const handleDeleteBlog = () => {
-    // Call the updateLikes function with the blog's id
     deleteBlog(blog.id);
   };
   return (
     <div style={blogStyle}>
       <div>
-        <strong>{blog.title}</strong> by {blog.author}
+        <Link
+          key={blog.id}
+          // style={blogStyle}
+          to={`/blogs/${blog.id}`} // Navigate to individual blog page
+        >
+          <strong>{blog.title}</strong>
+        </Link>
+        by {blog.author}
         <button onClick={toggleDetails}>
           {showDetails ? "Hide Details" : "Show Details"}
         </button>

@@ -1,6 +1,6 @@
 import axios from "axios";
 const baseUrl = "/api/blogs";
-// const baseUrl = "http://localhost:3003/api/blogs";
+
 let token = null;
 
 export const requestToken = (newToken) => {
@@ -15,7 +15,7 @@ export const getBlogs = async () => {
     console.error(
       "Token is missing. Please set the token before making the request."
     );
-    return []; // Return empty array to avoid potential errors downstream
+    return [];
   }
 
   try {
@@ -26,11 +26,10 @@ export const getBlogs = async () => {
     };
 
     const response = await axios.get(baseUrl, config);
-    console.log("Response**********", response);
     return response.data.map((blog) => ({ ...blog, user: blog.user }));
   } catch (error) {
     console.error("Error fetching blogs:", error);
-    throw error; // Re-throw the error for proper handling
+    throw error;
   }
 };
 

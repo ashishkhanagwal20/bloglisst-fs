@@ -31,16 +31,17 @@ import Togglable from "./components/Toggleable";
 import BlogForm2 from "./components/BlogForm2";
 import LoginForm from "./components/LoginForm";
 import LogoutButton from "./components/LogoutButton";
-
 import Signup from "./components/Signup";
-
-import Button from "react-bootstrap/Button";
 import Container from "react-bootstrap/Container";
-import axios from "axios";
-import bcrypt from "bcryptjs";
+import BlogPage from "./components/BlogPage";
+
 const App = () => {
+  const [blogs, setBlogs] = useState([]);
+  const [user, setUser] = useState(null);
+  const [showAll, setShowAll] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const blogFormRef = useRef();
   const navigate = useNavigate();
-  const [showSignup, setShowSignup] = useState(false);
   const padding = {
     padding: 5,
   };
@@ -64,11 +65,6 @@ const App = () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"] });
     },
   });
-  const [blogs, setBlogs] = useState([]);
-  const [user, setUser] = useState(null);
-  const [showAll, setShowAll] = useState(true);
-  const [errorMessage, setErrorMessage] = useState(null);
-  const blogFormRef = useRef();
 
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem("loggedBlogAppUser");
@@ -161,69 +157,6 @@ const App = () => {
   };
 
   return (
-    // <QueryClientProvider client={queryClient}>
-    //   <div className="container">
-    //     <h1>blogs</h1>
-    //     <div>
-    //       <Link style={padding} to="/blogs">
-    //         Blogs
-    //       </Link>
-    //       <Link
-    //         style={padding}
-    //         to="/addblog"
-    //         element={user ? <div>{blogForm()}</div> : null}
-    //       >
-    //         Create (requires login)
-    //       </Link>
-    //       <Link style={padding} to="/users">
-    //         Users
-    //       </Link>
-    //       {user ? (
-    //         <em>
-    //           {user.name} logged in <LogoutButton handleLogout={handleLogout} />
-    //         </em>
-    //       ) : (
-    //         <Link style={padding} to="/login">
-    //           Login
-    //         </Link>
-    //       )}
-    //     </div>
-
-    //     <Routes>
-    //       <Route path="/addblog" element={user && <div>{blogForm()}</div>} />
-    // <Route
-    //   path="/blogs"
-    //   element={
-    //     user &&
-    //     blogsToShow
-    //       .sort((a, b) => b.likes - a.likes)
-    //       .map((blog) => (
-    //         <Blog
-    //           key={blog.id}
-    //           blog={blog}
-    //           updateLikes={handleLikeClick}
-    //           deleteBlog={handleDeleteClick}
-    //         />
-    //       ))
-    //   }
-    // />
-
-    //       <Route
-    //         path="/users"
-    //         element={user ? <Users /> : <Navigate to="/login" replace />}
-    //       />
-
-    //       <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
-    //       <Route path="/signup" element={<Signup />} />
-    //       <Route
-    //         path="*"
-    //         element={!user && <LoginForm onLogin={handleLogin} />}
-    //       />
-    //     </Routes>
-
-    //     {/* {!user && <LoginForm onLogin={handleLogin} />} */}
-    //   </div>
-    // </QueryClientProvider>
     <QueryClientProvider client={queryClient}>
       <Container>
         <h1>blogs</h1>
@@ -261,17 +194,20 @@ const App = () => {
           <Route
             path="/blogs"
             element={
-              user &&
-              blogsToShow
-                .sort((a, b) => b.likes - a.likes)
-                .map((blog) => (
-                  <Blog
-                    key={blog.id}
-                    blog={blog}
-                    updateLikes={handleLikeClick}
-                    deleteBlog={handleDeleteClick}
-                  />
-                ))
+              user && (
+                <>
+                  {blogsToShow
+                    .sort((a, b) => b.likes - a.likes)
+                    .map((blog) => (
+                      <Blog
+                        key={blog.id}
+                        blog={blog}
+                        updateLikes={handleLikeClick}
+                        deleteBlog={handleDeleteClick}
+                      />
+                    ))}
+                </>
+              )
             }
           />
           <Route
@@ -284,6 +220,9 @@ const App = () => {
             path="/users"
             element={user ? <Users /> : <Navigate to="/login" replace />}
           />
+
+          <Route path="/blogs/:id" element={<BlogPage blogs={blogsToShow} />} />
+
           <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
           <Route path="/signup" element={<Signup />} />
           <Route

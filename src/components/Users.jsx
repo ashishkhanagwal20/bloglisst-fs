@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { getUsers } from "../services/userRequests";
 
-const Users = () => {
+const Users = ({ blogs }) => {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
